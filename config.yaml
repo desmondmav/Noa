@@ -1,0 +1,15 @@
+app:
+  name: "Study Companion"
+  version: "1.0.0"
+
+database:
+  type: sqlite
+  path: study_companion.db
+
+logging:
+  level: INFO
+  file: study_companion.log
+
+email:
+  smtp_server: smtp.gmail.com
+  smtp_port: 587
