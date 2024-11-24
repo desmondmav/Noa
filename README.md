@@ -70,5 +70,7 @@ AI-Driven Recommendations: Personalized study plans based on your habits and goa
 This project is licensed under the MIT License. See the LICENSE file for details.
 
 # About Fenrix AI’s Mission
+At Fenrix AI, our goal is to empower individuals and businesses with cutting-edge AI solutions that are accessible, cost-effective, and impactful. Noa is just the beginning of our journey to innovate the education space and redefine how people engage with technology.
 
+For more information about Fenrix AI and our projects, visit www.fenrixai.tech for more.
 
