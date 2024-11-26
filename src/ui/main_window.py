@@ -1,95 +1,110 @@
-import sys
-from PyQt6.QtWidgets import (
-    QMainWindow, QVBoxLayout, QHBoxLayout, 
-    QWidget, QPushButton, QTabWidget, QLabel
-)
-from PyQt6.QtGui import QIcon
-from PyQt6.QtCore import Qt
+import customtkinter as ctk
+from src.ai_modules.text_analyzer import TextAnalyzer
+from src.utils.note_generator import NoteGenerator
+from src.ui.dashboard import Dashboard
 
-from src.ui.study_tracker import StudyTrackerWidget
-from src.ui.document_analyzer import DocumentAnalyzerWidget
-from src.ui.resource_manager import ResourceManagerWidget
-from src.ai_modules.study_recommender import StudyRecommender
-from src.db_manager import DatabaseManager
+class MainWindow(ctk.CTkFrame):
+    def __init__(self, master, config, db_manager):
+        super().__init__(master)
+        
+        self.config = config
+        self.db_manager = db_manager
+        self.text_analyzer = TextAnalyzer()
+        self.note_generator = NoteGenerator()
+        
+        self.create_widgets()
+    
+    def create_widgets(self):
+        # Configure grid layout
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_columnconfigure(1, weight=3)
+        
+        # Create sidebar
+        self.sidebar = ctk.CTkFrame(self)
+        self.sidebar.grid(row=0, column=0, sticky="ns")
+        
+        # Create buttons for tabs
+        self.create_sidebar_buttons()
+        
+        # Create main area
+        self.main_area = ctk.CTkFrame(self)
+        self.main_area.grid(row=0, column=1, sticky="nsew")
+        
+        # Create initial dashboard
+        self.show_dashboard()
+    
+    def create_sidebar_buttons(self):
+        self.dashboard_button = ctk.CTkButton(self.sidebar, text="Dashboard", command=self.show_dashboard)
+        self.dashboard_button.pack(pady=10, padx=10, fill="x")
+        
+        self.notes_button = ctk.CTkButton(self.sidebar, text="Notes Generation", command=self.show_notes_generation)
+        self.notes_button.pack(pady=10, padx=10, fill="x")
 
-class StudyCompanionMainWindow(QMainWindow):
-    """
-    Main application window for Study Companion
-    """
-    def __init__(self, settings):
-        super().__init__()
+        self.text_analysis_button = ctk.CTkButton(self.sidebar, text="Text Analysis", command=self.show_text_analysis)
+        self.text_analysis_button.pack(pady=10, padx=10, fill="x")
         
-        # Initialize core components
-        self.settings = settings
-        self.db_manager = DatabaseManager()
-        self.study_recommender = StudyRecommender()
-        
-        # Setup main window
-        self.setWindowTitle(self.settings.get('app_name', 'Study Companion'))
-        self.setGeometry(100, 100, 1200, 800)
-        
-        # Create central widget and main layout
-        central_widget = QWidget()
-        main_layout = QVBoxLayout()
-        central_widget.setLayout(main_layout)
-        self.setCentralWidget(central_widget)
-        
-        # Create tab widget
-        self.tab_widget = QTabWidget()
-        main_layout.addWidget(self.tab_widget)
-        
-        # Initialize and add tabs
-        self._create_tabs()
-        
-        # Add status bar
-        self.statusBar().showMessage('Welcome to Study Companion')
-        
-        # Setup styling
-        self._setup_styles()
+    def show_dashboard(self):
+        for widget in self.main_area.winfo_children():
+            widget.destroy()
+        self.dashboard = Dashboard(self.main_area)
+        self.dashboard.pack(fill="both", expand=True)
+    
+    def show_notes_generation(self):
+        for widget in self.main_area.winfo_children():
+            widget.destroy()
+        self.notes_generation_frame = NotesGenerationFrame(self.main_area, self.note_generator)
+        self.notes_generation_frame.pack(fill="both", expand=True)
 
-    def _create_tabs(self):
-        """
-        Create and add tabs to the main window
-        """
-        # Study Tracker Tab
-        study_tracker = StudyTrackerWidget(self.db_manager, self.study_recommender)
-        self.tab_widget.addTab(study_tracker, QIcon('resources/icons/tracker.png'), 'Study Tracker')
-        
-        # Document Analyzer Tab
-        doc_analyzer = DocumentAnalyzerWidget()
-        self.tab_widget.addTab(doc_analyzer, QIcon('resources/icons/document.png'), 'Document Analyzer')
-        
-        # Resource Manager Tab
-        resource_manager = ResourceManagerWidget(self.study_recommender)
-        self.tab_widget.addTab(resource_manager, QIcon('resources/icons/resources.png'), 'Resource Manager')
+    def show_text_analysis(self):
+        for widget in self.main_area.winfo_children():
+            widget.destroy()
+        self.text_analysis_frame = TextAnalysisFrame(self.main_area, self.text_analyzer)
+        self.text_analysis_frame.pack(fill="both", expand=True)
 
-    def _setup_styles(self):
-        """
-        Apply custom styles to the main window
-        """
-        self.setStyleSheet("""
-            QMainWindow {
-                background-color: #2c3e50;
-                color: white;
-            }
-            QTabWidget::pane {
-                border: 1px solid #34495e;
-                background: #2c3e50;
-            }
-            QTabBar::tab {
-                background: #34495e;
-                color: white;
-                padding: 10px;
-            }
-            QTabBar::tab:selected {
-                background: #2980b9;
-            }
-        """)
+class NotesGenerationFrame(ctk.CTkFrame):
+    def __init__(self, master, note_generator):
+        super().__init__(master)
+        self.note_generator = note_generator
+        self.create_widgets()
+    
+    def create_widgets(self):
+        self.text_input = ctk.CTkTextbox(self, height=200)
+        self.text_input.pack(pady=10, padx=10, fill="x")
+        
+        self.generate_button = ctk.CTkButton(self, text="Generate Notes", command=self.generate_notes)
+        self.generate_button.pack(pady=10)
+        
+        self.notes_output = ctk.CTkTextbox(self, height=200)
+        self.notes_output.pack(pady=10, padx=10, fill="x")
+    
+    def generate_notes(self):
+        text = self.text_input.get("1.0", "end-1c")
+        if text:
+            notes = self.note_generator.generate_summary(text)
+            self.notes_output.delete("1.0", "end")
+            self.notes_output.insert("end", notes)
 
-    def closeEvent(self, event):
-        """
-        Handle application close event
-        """
-        # Perform cleanup operations
-        self.db_manager.close()
-        event.accept()
+class TextAnalysisFrame(ctk.CTkFrame):
+    def __init__(self, master, text_analyzer):
+        super().__init__(master)
+        self.text_analyzer = text_analyzer
+        self.create_widgets()
+    
+    def create_widgets(self):
+        self.text_input = ctk.CTkTextbox(self, height=200)
+        self.text_input.pack(pady=10, padx=10, fill="x")
+        
+        self.analyze_button = ctk.CTkButton(self, text="Analyze Text", command=self.analyze_text)
+        self.analyze_button.pack(pady=10)
+        
+        self.results_output = ctk.CTkTextbox(self, height=200)
+        self.results_output.pack(pady=10, padx=10, fill="x")
+    
+    def analyze_text(self):
+        text = self.text_input.get("1.0", "end-1c")
+        if text:
+            sentiment = self.text_analyzer.analyze_sentiment(text)
+            keywords = self.text_analyzer.extract_keywords(text)
+            results = f"Sentiment: {sentiment}\nKeywords: {', '.join(keywords)}"
+            self.results_output.delete("1.0", "end")
+            self.results_output.insert("end", results)
